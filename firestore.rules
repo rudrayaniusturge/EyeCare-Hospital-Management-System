@@ -1,0 +1,40 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Support Collection Group queries for 'records' (e.g., Lab Results across all patients)
+    match /{path=**}/records/{recordId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Allow users to manage their own profile document
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Allow authenticated users to manage patient records
+    // Note: We allow 'list' so staff can search, but UI handles role-based filtering
+    match /patients/{patientId} {
+      allow read, write: if isAuthenticated();
+      
+      match /records/{recordId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // Allow authenticated users to schedule and view appointments
+    match /appointments/{appointmentId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Allow authenticated users to manage invoices
+    match /invoices/{invoiceId} {
+      allow read, write: if isAuthenticated();
+    }
+  }
+}
